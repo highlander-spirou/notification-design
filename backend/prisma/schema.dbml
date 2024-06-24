@@ -1,0 +1,30 @@
+// Use DBML to define your database structure
+// Docs: https://dbml.dbdiagram.io/docs
+
+Table users_notifications {
+  user_id integer
+  notification_id integer
+  read_status varchar 
+}
+
+Table users {
+  id integer [primary key]
+  email varchar
+  role varchar
+  password varchar
+  created_at timestamp [default: `now()`]
+}
+
+Table notifications {
+  id integer [primary key]
+  body_text varchar
+  created_at timestamp [default: `now()`]
+  type varchar
+  publisher_id int
+}
+
+Ref: users.id < notifications.publisher_id [delete: set null, update: no action]
+
+Ref: users_notifications.user_id <> users.id [delete: cascade, update: no action]
+
+Ref: users_notifications.notification_id <> notifications.id [delete: cascade, update: no action]

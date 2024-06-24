@@ -1,0 +1,45 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         Int          @id @default(autoincrement())
+  email      String
+  role       String
+  password   String
+  createdAt  DateTime     @default(now())
+  notificationsReceived UsersNotifications[]
+  notificationsPublished Notification[] @relation("PublisherNotifications")
+
+  @@map("users")
+}
+
+model Notification {
+  id          Int          @id @default(autoincrement())
+  bodyText    String
+  createdAt   DateTime     @default(now())
+  type        String
+  publisherId Int?
+  publisher   User?        @relation("PublisherNotifications", fields: [publisherId], references: [id], onDelete: SetNull)
+  usersNotifications UsersNotifications[]
+
+  @@map("notifications")
+}
+
+model UsersNotifications {
+  userId         Int
+  notificationId Int
+  readStatus     String
+
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@id([userId, notificationId])
+
+  @@map("users_notifications")
+}
