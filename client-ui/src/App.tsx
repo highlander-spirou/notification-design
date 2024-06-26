@@ -14,11 +14,9 @@ import {
 } from "./components/ui/popover";
 
 import { ScrollArea } from "./components/ui/scroll-area";
-import { io } from "socket.io-client";
+import { io, Socket } from "socket.io-client";
 import moment from "moment-timezone";
 import { Input } from "./components/ui/input";
-
-const socket = io("http://localhost:4000");
 
 export interface INotification {
   bodyText: string;
@@ -117,31 +115,38 @@ const NotiItem = ({ notiBody }: { notiBody: INotification }) => {
 function App() {
   const [userId, setuserId] = useState("");
   const [notiList, setNotiList] = useState<INotification[]>([]);
+  const [socket, setSocket] = useState<Socket | null>(null);
 
   const [notiBody, setBody] = useState("");
 
   useEffect(() => {
     if (userId) {
-      socket.emit("all-notifications", +userId);
+      const socketClient = io("http://localhost:4000", {
+        query: { userId },
+      });
+      socketClient.on("connect", () => {
+        setSocket(socketClient);
+        socketClient.emit("all-notifications", +userId);
+      });
     }
   }, [userId]);
 
   useEffect(() => {
-    socket.on("all-notifications", (data: INotification[]) => {
-      setNotiList(data);
-    });
+    console.log("socket", socket);
   }, [socket]);
 
   useEffect(() => {
-    socket.on("scoket-error", (data: { message: string }) => {
-      console.log("data", data);
-    });
-  }, [socket]);
-
-  useEffect(() => {
-    socket.on("new-notification", (data) => {
-      setNotiList((oldArray) => [data, ...oldArray]);
-    });
+    if (socket !== null) {
+      socket.on("all-notifications", (data: INotification[]) => {
+        setNotiList(data);
+      });
+      socket.on("scoket-error", (data: { message: string }) => {
+        console.log("data", data);
+      });
+      socket.on("new-notification", (data) => {
+        setNotiList((oldArray) => [data, ...oldArray]);
+      });
+    }
   }, [socket]);
 
   const publishNotification = (eventType) => {

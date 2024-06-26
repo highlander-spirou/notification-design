@@ -6,11 +6,31 @@ export class NotificationService {
   constructor(private readonly dbService: DbService) {}
 
   async getAllNotifications(userId: number) {
-    const data = await this.dbService.notification.findMany({
-      take: 20,
-      orderBy: [{ createdAt: 'desc' }],
-      where: { NOT: { publisherId: userId } },
+    const { role } = await this.dbService.user.findFirstOrThrow({
+      where: { id: userId },
+      select: {
+        role: true,
+      },
     });
+    let data;
+    if (role !== 'admin') {
+      data = await this.dbService.notification.findMany({
+        take: 20,
+        orderBy: [{ createdAt: 'desc' }],
+        where: {
+          publisherId: { not: userId },
+          type: { notIn: ['permission', 'user'] },
+        },
+      });
+    } else {
+      data = await this.dbService.notification.findMany({
+        take: 20,
+        orderBy: [{ createdAt: 'desc' }],
+        where: {
+          publisherId: { not: userId },
+        },
+      });
+    }
     return data.map((x) => ({
       bodyText: x.bodyText,
       createdAt: x.createdAt,
@@ -18,6 +38,10 @@ export class NotificationService {
     }));
   }
 
+    
+
+
+  
   async createNotification(arg) {
     await this.dbService.notification.create({
       data: arg,
